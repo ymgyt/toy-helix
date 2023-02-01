@@ -59,9 +59,7 @@ impl MappableCommand {
 
 impl fmt::Debug for MappableCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("MappableCommand")
-            .field(&self.name())
-            .finish()
+        f.debug_tuple("MappableCommand").field(&self.name()).finish()
     }
 }
 
@@ -74,22 +72,12 @@ impl fmt::Display for MappableCommand {
 impl PartialEq for MappableCommand {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (
-                MappableCommand::Typable {
-                    name: first_name, ..
-                },
-                MappableCommand::Typable {
-                    name: second_name, ..
-                },
-            ) => first_name == second_name,
-            (
-                MappableCommand::Static {
-                    name: first_name, ..
-                },
-                MappableCommand::Static {
-                    name: second_name, ..
-                },
-            ) => first_name == second_name,
+            (MappableCommand::Typable { name: first_name, .. }, MappableCommand::Typable { name: second_name, .. }) => {
+                first_name == second_name
+            }
+            (MappableCommand::Static { name: first_name, .. }, MappableCommand::Static { name: second_name, .. }) => {
+                first_name == second_name
+            }
             _ => false,
         }
     }

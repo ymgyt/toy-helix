@@ -1,5 +1,6 @@
-use crate::view::keyboard::{KeyCode, KeyModifiers, ModifierKeyCode};
 use anyhow::{anyhow, Error};
+
+use crate::view::keyboard::{KeyCode, KeyModifiers, ModifierKeyCode};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub struct KeyEvent {

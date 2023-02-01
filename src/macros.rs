@@ -41,7 +41,8 @@ macro_rules! keymap {
     };
 }
 
-pub use {hashmap, keymap};
+pub use hashmap;
+pub use keymap;
 
 #[cfg(test)]
 mod test {
