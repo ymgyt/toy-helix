@@ -1,10 +1,4 @@
 #[macro_export]
-macro_rules! hashmap {
-    (@single $($x:tt)*) => (());
-    (@count $($rest:expr),*) => (<[()]>::len(&[$(hashmap!(@single $rest)),*]));
-}
-
-#[macro_export]
 macro_rules! keymap {
     (@trie $cmd:ident) => {
         $crate::term::keymap::KeyTrie::Leaf($crate::term::commands::MappableCommand::$cmd)
@@ -41,18 +35,11 @@ macro_rules! keymap {
     };
 }
 
-pub use hashmap;
 pub use keymap;
 
 #[cfg(test)]
 mod test {
     use super::*;
-
-    #[test]
-    fn hashmap_count() {
-        let n = hashmap!(@count "a","b","c");
-        assert_eq!(n, 3);
-    }
 
     #[test]
     fn keymap_1() {
