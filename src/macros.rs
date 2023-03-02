@@ -14,7 +14,7 @@ macro_rules! keymap {
         { $label:literal $(sticky=$sticky:literal)? $($($key:literal)|+ => $value:tt,)+ }
     ) => {
         {
-            let _cap = $crate::macros::hashmap!(@count $($($key),+),*);
+            let _cap = $crate::core::macros::hashmap!(@count $($($key),+),*);
             let mut _map = ::std::collections::HashMap::with_capacity(_cap);
             let mut _order = ::std::vec::Vec::with_capacity(_cap);
             $(
