@@ -11,6 +11,15 @@ pub struct Context<'a> {
 pub trait Component: Any {
     /// Render the component onto the provided surface.
     fn render(&mut self, area: Rect, frame: &mut Surface, ctx: &mut Context);
+
+    /// May be used by the parent component to compute the child area.
+    /// viewport is the maximum allowd area, and the child should stay widthin those bounds.
+    ///
+    /// The returned size might be larger than the vieport if the child is too big to fit.
+    /// Int this case the parent can use the values to calculate scroll.
+    fn required_size(&mut self, _viewport: (u16, u16)) -> Option<(u16, u16)> {
+        None
+    }
 }
 
 pub struct Compositor {
@@ -30,5 +39,16 @@ impl Compositor {
         for layer in &mut self.layers {
             layer.render(area, surface, cx);
         }
+    }
+
+    pub fn size(&self) -> Rect {
+        self.area
+    }
+
+    /// Add a layer to be rendered in fromt of all existing layers.
+    pub fn push(&mut self, mut layer: Box<dyn Component>) {
+        let size = self.size();
+        layer.required_size((size.width, size.height));
+        self.layers.push(layer);
     }
 }

@@ -1,21 +1,34 @@
-use std::{collections::BTreeMap, path::Path, sync::Arc};
+use arc_swap::access::{DynAccess, DynGuard};
+use serde::{Deserialize, Serialize};
+use std::{collections::BTreeMap, num::NonZeroUsize, path::Path, sync::Arc};
 
-use arc_swap::access::DynAccess;
-
+use super::{
+    document::Document,
+    graphics::Rect,
+    tree::{Layout, Tree},
+    view::View,
+    DocumentId,
+};
 use crate::view::theme::{Theme, DEFAULT_THEME};
 
-use super::{document::Document, graphics::Rect, tree::Tree, DocumentId};
-
-pub struct Config {}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case", default, deny_unknown_fields)]
+pub struct Config {
+    #[serde(default)]
+    pub whitespace: WhitespaceConfig,
+}
 
 impl Default for Config {
     fn default() -> Self {
-        Self {}
+        Self {
+            whitespace: WhitespaceConfig::default(),
+        }
     }
 }
 
 pub struct Editor {
     pub tree: Tree,
+    pub next_document_id: DocumentId,
     pub documents: BTreeMap<DocumentId, Document>,
     pub config: Arc<dyn DynAccess<Config>>,
     pub exit_code: i32,
@@ -29,6 +42,7 @@ impl Editor {
         let tree = Tree::new(area);
         Self {
             tree,
+            next_document_id: DocumentId::default(),
             documents: BTreeMap::new(),
             config,
             exit_code: 0,
@@ -49,10 +63,19 @@ impl Editor {
                 // Some(self.syn_loader.clone())
                 self.config.clone(),
             )?;
-            doc.id
+
+            // TODO: handle diff
+
+            let id = self.new_document(doc);
+
+            // TODO: launch_language_server
+            // let _ = self.launch_language_server(id);
+
+            id
         };
 
-        todo!()
+        self.switch(id, action);
+        Ok(id)
     }
 
     #[inline]
@@ -68,6 +91,63 @@ impl Editor {
         self.documents()
             .find(|doc| doc.path().map(|p| p == path.as_ref()).unwrap_or(false))
     }
+
+    /// Generate an id for a new document and register it.
+    fn new_document(&mut self, mut doc: Document) -> DocumentId {
+        let id = self.next_document_id;
+        self.next_document_id = DocumentId(unsafe { NonZeroUsize::new_unchecked(self.next_document_id.0.get() + 1) });
+        doc.id = id;
+        self.documents.insert(id, doc);
+
+        // TODO: handle save queues
+
+        id
+    }
+
+    pub fn config(&self) -> DynGuard<Config> {
+        self.config.load()
+    }
+
+    pub fn switch(&mut self, id: DocumentId, action: Action) {
+        // use crate::view::tree::Layout;
+
+        if !self.documents.contains_key(&id) {
+            tracing::error!("cannot switch to document that does not exist (anymore)");
+            return;
+        }
+
+        // self.enter_normal_mode();
+
+        match action {
+            Action::HorizontalSplit | Action::VerticalSplit => {
+                let view = self
+                    .tree
+                    .try_get(self.tree.focus)
+                    .filter(|v| id == v.doc)
+                    .cloned()
+                    .unwrap_or_else(|| View::new(id));
+                let view_id = self.tree.split(
+                    view,
+                    match action {
+                        Action::HorizontalSplit => Layout::Horizontal,
+                        Action::VerticalSplit => Layout::Vertical,
+                        _ => unreachable!(),
+                    },
+                );
+                let doc = doc_mut!(self, &id);
+                doc.ensure_view_init(view_id);
+            }
+            Action::Load => {
+                let view_id = view!(self).id;
+                let doc = doc_mut!(self, &id);
+                doc.ensure_view_init(view_id);
+                return;
+            }
+            action => tracing::error!("action: {action:?} not implemented yet"),
+        }
+
+        // self_refresh();
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -76,4 +156,89 @@ pub enum Action {
     Replace,
     HorizontalSplit,
     VerticalSplit,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WhitespaceConfig {
+    pub render: WhitespaceRender,
+    pub characters: WhitespaceCharacters,
+}
+
+impl Default for WhitespaceConfig {
+    fn default() -> Self {
+        Self {
+            render: WhitespaceRender::Basic(WhitespaceRenderValue::None),
+            characters: WhitespaceCharacters::default(),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum WhitespaceRender {
+    Basic(WhitespaceRenderValue),
+    Specific {
+        default: Option<WhitespaceRenderValue>,
+        space: Option<WhitespaceRenderValue>,
+        nbsp: Option<WhitespaceRenderValue>,
+        tab: Option<WhitespaceRenderValue>,
+        newline: Option<WhitespaceRenderValue>,
+    },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum WhitespaceRenderValue {
+    None,
+    // TODO
+    // Selection,
+    All,
+}
+
+impl WhitespaceRender {
+    pub fn space(&self) -> WhitespaceRenderValue {
+        match *self {
+            Self::Basic(val) => val,
+            Self::Specific { default, space, .. } => space.or(default).unwrap_or(WhitespaceRenderValue::None),
+        }
+    }
+    pub fn nbsp(&self) -> WhitespaceRenderValue {
+        match *self {
+            Self::Basic(val) => val,
+            Self::Specific { default, nbsp, .. } => nbsp.or(default).unwrap_or(WhitespaceRenderValue::None),
+        }
+    }
+    pub fn tab(&self) -> WhitespaceRenderValue {
+        match *self {
+            Self::Basic(val) => val,
+            Self::Specific { default, tab, .. } => tab.or(default).unwrap_or(WhitespaceRenderValue::None),
+        }
+    }
+    pub fn newline(&self) -> WhitespaceRenderValue {
+        match *self {
+            Self::Basic(val) => val,
+            Self::Specific { default, newline, .. } => newline.or(default).unwrap_or(WhitespaceRenderValue::None),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct WhitespaceCharacters {
+    pub space: char,
+    pub nbsp: char,
+    pub tab: char,
+    pub tabpad: char,
+    pub newline: char,
+}
+
+impl Default for WhitespaceCharacters {
+    fn default() -> Self {
+        Self {
+            space: '·',    // U+00B7
+            nbsp: '⍽',    // U+237D
+            tab: '→',     // U+2192
+            newline: '⏎', // U+23CE
+            tabpad: ' ',
+        }
+    }
 }

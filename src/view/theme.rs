@@ -20,6 +20,10 @@ pub struct Theme {
 }
 
 impl Theme {
+    pub fn highlight(&self, index: usize) -> Style {
+        self.highlights[index]
+    }
+
     pub fn get(&self, scope: &str) -> Style {
         self.try_get(scope).unwrap_or_default()
     }

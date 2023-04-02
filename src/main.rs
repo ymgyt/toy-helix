@@ -8,8 +8,11 @@ fn main() -> Result<()> {
 
 #[tokio::main]
 async fn run() -> Result<i32> {
-    // TODO: init subscriber
     let args = Args::parse_args()?;
+
+    let _guard = init_tracing();
+
+    tracing::info!("Starting...");
 
     let config = Config::default();
     let mut app = Application::new(args, config).context("unable to create new application")?;
@@ -17,4 +20,18 @@ async fn run() -> Result<i32> {
     let exit_code = app.run().await?;
 
     Ok(exit_code)
+}
+
+fn init_tracing() -> tracing_appender::non_blocking::WorkerGuard {
+    let appender = tracing_appender::rolling::never("/tmp", "toy-helix.log");
+    let (non_blocking, guard) = tracing_appender::non_blocking(appender);
+
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .with_file(true)
+        .with_line_number(true)
+        .with_writer(non_blocking)
+        .init();
+
+    guard
 }

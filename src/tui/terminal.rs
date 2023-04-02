@@ -1,6 +1,6 @@
 use std::io;
 
-use crate::view::graphics::Rect;
+use crate::view::graphics::{CursorKind, Rect};
 
 use super::{backend::Backend, buffer::Buffer};
 
@@ -67,5 +67,26 @@ where
 
     pub fn size(&self) -> io::Result<Rect> {
         self.backend.size()
+    }
+
+    pub fn flush(&mut self) -> io::Result<()> {
+        let previous_buffer = &self.buffers[1 - self.current];
+        let current_buffer = &self.buffers[self.current];
+        let updates = previous_buffer.diff(current_buffer);
+        self.backend.draw(updates.into_iter())
+    }
+
+    /// Synchronizes terminal size, calls the rendering closure, flushes the current internal state
+    /// and prepares for the next draw call.
+    pub fn draw(&mut self, cursor_position: Option<(u16, u16)>, cursor_kind: CursorKind) -> io::Result<()> {
+        self.flush()?;
+
+        // TODO: handle cursor
+
+        self.buffers[1 - self.current].reset();
+        self.current = 1 - self.current;
+
+        self.backend.flush()?;
+        Ok(())
     }
 }
