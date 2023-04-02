@@ -2,6 +2,25 @@ use std::str::FromStr;
 
 use bitflags::bitflags;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// UNSTABLE
+pub enum CursorKind {
+    /// █
+    Block,
+    /// |
+    Bar,
+    /// _
+    Underline,
+    /// Hidden cursor, can set cursor position with this to let IME have correct cursor position.
+    Hidden,
+}
+
+impl Default for CursorKind {
+    fn default() -> Self {
+        Self::Block
+    }
+}
+
 /// A simple rectangle used to in the computation of the layout and to give wiwdgets an hint about the
 /// area they are supposed to render to. (x, y) = (0, 0) is at the top left corner of the screen.
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
@@ -40,6 +59,18 @@ impl Rect {
     #[inline]
     pub fn bottom(self) -> u16 {
         self.y.saturating_add(self.height)
+    }
+
+    /// Returns a new Rect with width reduced from the left side.
+    /// This changes the x corrdinate and clamps it to the right
+    /// edge of the original Rect.
+    pub fn clip_left(self, width: u16) -> Rect {
+        let width = std::cmp::min(width, self.width);
+        Rect {
+            x: self.x.saturating_add(width),
+            width: self.width.saturating_sub(width),
+            ..self
+        }
     }
 
     pub fn clip_bottom(self, height: u16) -> Rect {
@@ -171,6 +202,33 @@ impl Style {
     pub fn remove_modifier(mut self, modifier: Modifier) -> Style {
         self.add_modifier.remove(modifier);
         self.sub_modifier.insert(modifier);
+        self
+    }
+
+    /// Results in a combined style that is equivalent to applying the two individual styles to
+    /// a style one after the other.
+    ///
+    /// ## Examples
+    /// ```
+    /// # use helix_view::graphics::{Color, Modifier, Style};
+    /// let style_1 = Style::default().fg(Color::Yellow);
+    /// let style_2 = Style::default().bg(Color::Red);
+    /// let combined = style_1.patch(style_2);
+    /// assert_eq!(
+    ///     Style::default().patch(style_1).patch(style_2),
+    ///     Style::default().patch(combined));
+    /// ```
+    pub fn patch(mut self, other: Style) -> Style {
+        self.fg = other.fg.or(self.fg);
+        self.bg = other.bg.or(self.bg);
+        self.underline_color = other.underline_color.or(self.underline_color);
+        self.underline_style = other.underline_style.or(self.underline_style);
+
+        self.add_modifier.remove(other.sub_modifier);
+        self.add_modifier.insert(other.add_modifier);
+        self.sub_modifier.remove(other.add_modifier);
+        self.sub_modifier.insert(other.sub_modifier);
+
         self
     }
 }

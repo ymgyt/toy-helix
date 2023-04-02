@@ -1,3 +1,6 @@
+#[macro_use]
+pub mod macros;
+
 use std::num::NonZeroUsize;
 
 pub mod document;

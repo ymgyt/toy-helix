@@ -9,9 +9,13 @@ use crate::{
     term::{
         args::Args,
         compositor::{self, Compositor},
+        ui::editor::EditorView,
     },
     tui::backend::crossterm::CrosstermBackend,
-    view::editor::{Action, Editor},
+    view::{
+        editor::{Action, Editor},
+        graphics::CursorKind,
+    },
 };
 
 type Terminal = crate::tui::terminal::Terminal<CrosstermBackend<std::io::Stdout>>;
@@ -36,13 +40,16 @@ impl Application {
         let backend = CrosstermBackend::new(stdout());
         let terminal = Terminal::new(backend)?;
         let area = terminal.size().expect("Couldn't get terminal size");
-        let compositor = Compositor::new(area);
+        let mut compositor = Compositor::new(area);
 
         let config = Arc::new(ArcSwap::from_pointee(config));
         let mut editor = Editor::new(
             area,
             Arc::new(Map::new(Arc::clone(&config), |config: &Config| &config.editor)),
         );
+
+        let mut editor_view = Box::new(EditorView::new());
+        compositor.push(editor_view);
 
         if !args.files.is_empty() {
             let first = &args.files[0].0; // we know it's not empty
@@ -56,7 +63,14 @@ impl Application {
                             "expected a path to file, found a directory. (to open a directory pass it as first argument)"
                         )
                     } else {
-                        let action = Action::Load;
+                        // TODO: handle --vsplit, --hsplit
+                        let action = {
+                            if i == 0 {
+                                Action::VerticalSplit
+                            } else {
+                                Action::Load
+                            }
+                        };
                         let doc_id = editor
                             .open(&file, action)
                             .context(format!("open '{}'", file.to_string_lossy()))?;
@@ -105,6 +119,8 @@ impl Application {
 
     pub async fn event_loop(&mut self) {
         self.render().await;
+
+        std::thread::park();
     }
 
     async fn render(&mut self) {
@@ -117,5 +133,9 @@ impl Application {
         let surface = self.terminal.current_buffer_mut();
 
         self.compositor.render(area, surface, &mut cx);
+
+        // TODO: handle cursor
+
+        self.terminal.draw(None, CursorKind::Block).unwrap();
     }
 }
