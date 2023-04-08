@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use crossterm::event::EventStream;
 use toy_helix::{application::Application, config::Config, term::args::Args};
 
 fn main() -> Result<()> {
@@ -17,7 +18,7 @@ async fn run() -> Result<i32> {
     let config = Config::default();
     let mut app = Application::new(args, config).context("unable to create new application")?;
 
-    let exit_code = app.run().await?;
+    let exit_code = app.run(&mut EventStream::new()).await?;
 
     Ok(exit_code)
 }

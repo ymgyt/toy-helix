@@ -2,31 +2,60 @@ use arc_swap::access::{DynAccess, DynGuard};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, num::NonZeroUsize, path::Path, sync::Arc};
 
-use super::{
-    document::Document,
-    graphics::Rect,
+use crate::view::{
+    document::{Document, Mode},
+    graphics::{CursorKind, Rect},
+    theme::{Theme, DEFAULT_THEME},
     tree::{Layout, Tree},
     view::View,
     DocumentId,
 };
-use crate::view::theme::{Theme, DEFAULT_THEME};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case", default, deny_unknown_fields)]
+// Cursor shape is read and used on every rendered frame and so needs
+// to be fast. Therefore we avoid a hashmap and use an enum indexed array.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CursorShapeConfig([CursorKind; 3]);
+
+impl CursorShapeConfig {
+    pub fn from_mode(&self, mode: Mode) -> CursorKind {
+        self.get(mode as usize).copied().unwrap_or_default()
+    }
+}
+
+impl std::ops::Deref for CursorShapeConfig {
+    type Target = [CursorKind; 3];
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Default for CursorShapeConfig {
+    fn default() -> Self {
+        Self([CursorKind::Block; 3])
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+// #[serde(rename_all = "kebab-case", default, deny_unknown_fields)]
 pub struct Config {
-    #[serde(default)]
+    // #[serde(default)]
     pub whitespace: WhitespaceConfig,
+    /// Shape for cursor in each mode
+    pub cursor_shape: CursorShapeConfig,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             whitespace: WhitespaceConfig::default(),
+            cursor_shape: CursorShapeConfig::default(),
         }
     }
 }
 
 pub struct Editor {
+    pub mode: Mode,
     pub tree: Tree,
     pub next_document_id: DocumentId,
     pub documents: BTreeMap<DocumentId, Document>,
@@ -41,6 +70,7 @@ impl Editor {
         let theme = DEFAULT_THEME.clone();
         let tree = Tree::new(area);
         Self {
+            mode: Mode::Normal,
             tree,
             next_document_id: DocumentId::default(),
             documents: BTreeMap::new(),
@@ -48,6 +78,10 @@ impl Editor {
             exit_code: 0,
             theme,
         }
+    }
+
+    pub fn mode(&self) -> Mode {
+        self.mode
     }
 
     pub fn open(&mut self, path: &Path, action: Action) -> anyhow::Result<DocumentId> {

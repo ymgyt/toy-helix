@@ -7,6 +7,7 @@ pub mod line_ending;
 pub mod macros;
 pub mod path;
 pub mod position;
+pub mod selection;
 pub mod syntax;
 pub mod text_annotations;
 
@@ -21,5 +22,7 @@ pub use ropey::{str_utils, Rope, RopeBuilder, RopeSlice};
 pub use smartstring::SmartString;
 
 pub use line_ending::LineEnding;
+
+pub use selection::{Range, Selection};
 
 pub type Tendril = SmartString<smartstring::LazyCompact>;

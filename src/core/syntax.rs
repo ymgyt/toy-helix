@@ -18,3 +18,35 @@ pub enum HighlightEvent {
     HighlightStart(Highlight),
     HighlightEnd,
 }
+
+pub struct Merge<I> {
+    iter: I,
+    spans: Box<dyn Iterator<Item = (usize, std::ops::Range<usize>)>>,
+
+    next_event: Option<HighlightEvent>,
+    next_span: Option<(usize, std::ops::Range<usize>)>,
+
+    queue: Vec<HighlightEvent>,
+}
+
+pub fn merge<I: Iterator<Item = HighlightEvent>>(iter: I, spans: Vec<(usize, std::ops::Range<usize>)>) -> Merge<I> {
+    let spans = Box::new(spans.into_iter());
+    let mut merge = Merge {
+        iter,
+        spans,
+        next_event: None,
+        next_span: None,
+        queue: Vec::new(),
+    };
+    merge.next_event = merge.iter.next();
+    merge.next_span = merge.spans.next();
+    merge
+}
+
+impl<I: Iterator<Item = HighlightEvent>> Iterator for Merge<I> {
+    type Item = HighlightEvent;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        todo!()
+    }
+}

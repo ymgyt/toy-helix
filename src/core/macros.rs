@@ -1,7 +1,7 @@
 macro_rules! hashmap {
     (@single $($x:tt)*) => (());
 
-    (@count $($rest:expr),*) => (<[()]>::len(&[$(hashmap!(@single $rest)),*]));
+    (@count $($rest:expr),*) => (<[()]>::len(&[$(crate::core::macros::hashmap!(@single $rest)),*]));
 
     ($($key:expr => $value:expr,)+) => { hashmap!($($key => $value),+) };
 

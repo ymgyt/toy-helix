@@ -3,6 +3,9 @@ use std::{io::stdout, sync::Arc};
 
 use anyhow::{Context, Error, Result};
 use crossterm::{execute, terminal};
+use futures_util::Stream;
+use signal_hook::consts::signal;
+use signal_hook_tokio::Signals;
 
 use crate::{
     config::Config,
@@ -26,6 +29,8 @@ pub struct Application {
     pub editor: Editor,
 
     config: Arc<ArcSwap<Config>>,
+
+    signals: Signals,
 }
 
 fn restore_term() -> Result<(), Error> {
@@ -79,15 +84,21 @@ impl Application {
             }
         }
 
+        let signals = Signals::new([signal::SIGTSTP]).context("build signal handler")?;
+
         Ok(Self {
             compositor,
             editor,
             config,
             terminal,
+            signals,
         })
     }
 
-    pub async fn run(&mut self) -> Result<i32, Error> {
+    pub async fn run<S>(&mut self, input_stream: &mut S) -> Result<i32, Error>
+    where
+        S: Stream<Item = crossterm::Result<crossterm::event::Event>> + Unpin,
+    {
         self.claim_term().await?;
 
         // Exit the alternate screen and disable raw mode before panicking
@@ -100,7 +111,7 @@ impl Application {
             hook(info);
         }));
 
-        self.event_loop().await;
+        self.event_loop(input_stream).await;
 
         restore_term()?;
 
@@ -117,10 +128,36 @@ impl Application {
         Ok(())
     }
 
-    pub async fn event_loop(&mut self) {
+    pub async fn event_loop<S>(&mut self, input_stream: &mut S)
+    where
+        S: Stream<Item = crossterm::Result<crossterm::event::Event>> + Unpin,
+    {
         self.render().await;
 
-        std::thread::park();
+        loop {
+            if !self.event_loop_until_idle(input_stream).await {
+                break;
+            }
+        }
+    }
+
+    pub async fn event_loop_until_idle<S>(&mut self, input_stream: &mut S) -> bool
+    where
+        S: Stream<Item = crossterm::Result<crossterm::event::Event>> + Unpin,
+    {
+        loop {
+            // TODO: handle should_close
+
+            use futures_util::StreamExt;
+
+            tokio::select! {
+                biased;
+
+                Some(event) = input_stream.next() => {
+                    panic!("handle event");
+                }
+            }
+        }
     }
 
     async fn render(&mut self) {

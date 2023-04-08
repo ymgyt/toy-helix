@@ -1,12 +1,16 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Context, Error, Result};
 use arc_swap::access::DynAccess;
 use std::{
+    collections::HashMap,
+    fmt::{self, Display},
     path::{Path, PathBuf},
+    str::FromStr,
     sync::Arc,
 };
 
 use crate::core::{
-    doc_formatter::TextFormat, encoding, syntax::LanguageConfiguration, text_annotations::TextAnnotations, Rope, RopeBuilder,
+    doc_formatter::TextFormat, encoding, syntax::LanguageConfiguration, text_annotations::TextAnnotations, Range, Rope,
+    RopeBuilder, Selection,
 };
 
 use super::{editor::Config, theme::Theme, DocumentId, ViewId};
@@ -14,9 +18,40 @@ use super::{editor::Config, theme::Theme, DocumentId, ViewId};
 /// 8kB of buffer space for encoding and decoding Repos.
 const BUF_SIZE: usize = 8192;
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Mode {
+    Normal = 0,
+    Select = 1,
+    Insert = 2,
+}
+
+impl Display for Mode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Mode::Normal => f.write_str("normal"),
+            Mode::Select => f.write_str("select"),
+            Mode::Insert => f.write_str("insert"),
+        }
+    }
+}
+
+impl FromStr for Mode {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "normal" => Ok(Mode::Normal),
+            "select" => Ok(Mode::Select),
+            "insert" => Ok(Mode::Insert),
+            _ => bail!("Invalid mode '{}'", s),
+        }
+    }
+}
+
 pub struct Document {
     pub id: DocumentId,
     text: Rope,
+    selections: HashMap<ViewId, Selection>,
 
     path: Option<PathBuf>,
     encoding: &'static encoding::Encoding,
@@ -93,6 +128,7 @@ impl Document {
         Self {
             id: DocumentId::default(),
             text,
+            selections: HashMap::default(),
             path: None,
             encoding,
             language: None,
@@ -148,9 +184,32 @@ impl Document {
         4
     }
 
+    pub fn set_selection(&mut self, view_id: ViewId, selection: Selection) {
+        self.selections
+            .insert(view_id, selection.ensure_invariants(self.text().slice(..)));
+    }
+
+    /// Find the origin selection of the text in a document, i.e. where
+    /// a single cursor sould go if it were on the first grapheme. If
+    /// the text is empty, returns (0, 0).
+    pub fn origin(&self) -> Range {
+        if self.text().len_chars() == 0 {
+            return Range::new(0, 0);
+        }
+
+        Range::new(0, 1).grapheme_aligned(self.text().slice(..))
+    }
+
+    pub fn reset_selection(&mut self, view_id: ViewId) {
+        let origin = self.origin();
+        self.set_selection(view_id, Selection::single(origin.anchor, origin.head));
+    }
+
     /// Initializes a new selection for the given view if it does not already have one.
     pub fn ensure_view_init(&mut self, view_id: ViewId) {
-        // TODO: impl
+        if self.selections.get(&view_id).is_none() {
+            self.reset_selection(view_id);
+        }
     }
 
     pub fn text_format(&self, mut viewport_width: u16, theme: Option<&Theme>) -> TextFormat {
