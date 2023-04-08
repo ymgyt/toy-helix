@@ -184,6 +184,11 @@ impl Document {
         4
     }
 
+    #[inline]
+    pub fn selection(&self, view_id: ViewId) -> &Selection {
+        &self.selections[&view_id]
+    }
+
     pub fn set_selection(&mut self, view_id: ViewId, selection: Selection) {
         self.selections
             .insert(view_id, selection.ensure_invariants(self.text().slice(..)));

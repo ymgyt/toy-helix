@@ -47,6 +47,43 @@ impl<I: Iterator<Item = HighlightEvent>> Iterator for Merge<I> {
     type Item = HighlightEvent;
 
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        use HighlightEvent::*;
+        if let Some(event) = self.queue.pop() {
+            return Some(event);
+        }
+
+        // TODO: handle range if offscreen case
+
+        match (self.next_event, &self.next_span) {
+            (Some(Source { start, end }), Some((span, range))) if start == range.start => {
+                let intersect = range.end.min(end);
+                let event = HighlightStart(Highlight(*span));
+
+                // enqueue in reverse order
+                self.queue.push(HighlightEnd);
+                self.queue.push(Source { start, end: intersect });
+
+                if end == intersect {
+                    // the event is complete
+                    self.next_event = self.iter.next();
+                } else {
+                    self.next_event = Some(Source { start: intersect, end })
+                };
+
+                if intersect == range.end {
+                    self.next_span = self.spans.next();
+                } else {
+                    self.next_span = Some((*span, intersect..range.end));
+                };
+
+                Some(event)
+            }
+            (Some(event), None) => {
+                self.next_event = self.iter.next();
+                Some(event)
+            }
+            (None, None) => None,
+            e => todo!("Merge::next() {e:?}"),
+        }
     }
 }

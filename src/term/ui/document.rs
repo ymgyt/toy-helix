@@ -76,7 +76,7 @@ pub fn render_document(
     doc: &Document,
     offset: ViewPosition,
     doc_annotations: &TextAnnotations,
-    // highlight_iter: impl Iterator<Item = HighlightEvent>,
+    highlight_iter: impl Iterator<Item = HighlightEvent>,
     theme: &Theme,
     // line_decorations: &mut [Box<dyn LineDecoration +'_>],
     // translated_positions: &mut [TranslatedPosition],
@@ -91,7 +91,7 @@ pub fn render_document(
         offset,
         &doc.text_format(viewport.width, Some(theme)),
         doc_annotations,
-        // highlight_iter,
+        highlight_iter,
         theme,
         // line_decorations,
         // translated_positions,
@@ -209,7 +209,7 @@ pub fn render_text<'t>(
     offset: ViewPosition,
     text_fmt: &TextFormat,
     text_annotations: &TextAnnotations,
-    // highlight_iter: impl Iterator<Item = HighlightEvent>,
+    highlight_iter: impl Iterator<Item = HighlightEvent>,
     theme: &Theme,
     // line_decorations: &mut [Box<dyn LineDecoration + '_>],
     // translated_position: &mut [TranslatedPosition],
@@ -221,6 +221,12 @@ pub fn render_text<'t>(
 
     let (mut formatter, mut first_visible_char_idx) =
         DocumentFormatter::new_at_prev_checkpoint(text, text_fmt, text_annotations, offset.anchor);
+    let mut styles = StyleIter {
+        text_style: renderer.text_style,
+        active_highlights: Vec::with_capacity(64),
+        highlight_iter,
+        theme,
+    };
 
     let mut last_line_pos = LinePos {
         first_visual_line: false,
@@ -230,7 +236,7 @@ pub fn render_text<'t>(
     };
     let mut is_in_indent_area = true;
     let mut last_line_indent_level = 0;
-    let mut style_span = (Style::default(), usize::MAX);
+    let mut style_span = styles.next().unwrap_or_else(|| (Style::default(), usize::MAX));
 
     loop {
         let doc_line = formatter.line_pos();
@@ -246,11 +252,17 @@ pub fn render_text<'t>(
             break;
         }
 
+        // acquire the correct grapheme style
+        if char_pos >= style_span.1 {
+            style_span = styles.next().unwrap_or((Style::default(), usize::MAX));
+        }
         char_pos += grapheme.doc_chars();
+
+        let grapheme_style = style_span.0;
 
         renderer.draw_grapheme(
             grapheme.grapheme,
-            style_span.0,
+            grapheme_style,
             &mut last_line_indent_level,
             &mut is_in_indent_area,
             pos,

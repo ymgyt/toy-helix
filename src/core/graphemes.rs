@@ -82,6 +82,48 @@ pub fn grapheme_width(g: &str) -> usize {
     }
 }
 
+/// Finds the previous grapheme boundary before the given char position.
+#[must_use]
+#[inline(always)]
+pub fn prev_grapheme_boundary(slice: RopeSlice, char_idx: usize) -> usize {
+    nth_prev_grapheme_boundary(slice, char_idx, 1)
+}
+
+#[must_use]
+pub fn nth_prev_grapheme_boundary(slice: RopeSlice, char_idx: usize, n: usize) -> usize {
+    debug_assert!(char_idx <= slice.len_chars());
+
+    let mut byte_idx = slice.char_to_byte(char_idx);
+
+    let (mut chunk, mut chunk_byte_idx, mut chunk_char_idx, _) = slice.chunk_at_byte(byte_idx);
+
+    let mut gc = GraphemeCursor::new(byte_idx, slice.len_bytes(), true);
+    for _ in 0..n {
+        loop {
+            match gc.prev_boundary(chunk, chunk_byte_idx) {
+                Ok(None) => return 0,
+                Ok(Some(n)) => {
+                    byte_idx = n;
+                    break;
+                }
+                Err(GraphemeIncomplete::PrevChunk) => {
+                    let (a, b, c, _) = slice.chunk_at_byte(chunk_byte_idx - 1);
+                    chunk = a;
+                    chunk_byte_idx = b;
+                    chunk_char_idx = c;
+                }
+                Err(GraphemeIncomplete::PreContext(n)) => {
+                    let ctx_chunk = slice.chunk_at_byte(n - 1).0;
+                    gc.provide_context(ctx_chunk, n - ctx_chunk.len());
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+    let tmp = byte_to_char_idx(chunk, byte_idx - chunk_byte_idx);
+    chunk_char_idx + tmp
+}
+
 /// An iterator over the graphemes of a `RopeSlice`.
 #[derive(Clone)]
 pub struct RopeGraphemes<'a> {

@@ -31,6 +31,15 @@ impl Theme {
     pub fn try_get(&self, scope: &str) -> Option<Style> {
         std::iter::successors(Some(scope), |s| Some(s.rsplit_once('.')?.0)).find_map(|s| self.styles.get(s).copied())
     }
+
+    #[inline]
+    pub fn scopes(&self) -> &[String] {
+        &self.scopes
+    }
+
+    pub fn find_scope_index_exact(&self, scope: &str) -> Option<usize> {
+        self.scopes().iter().position(|s| s == scope)
+    }
 }
 
 impl<'de> Deserialize<'de> for Theme {
@@ -60,7 +69,7 @@ fn build_theme_values(mut values: Map<String, Value>) -> (HashMap<String, Style>
         .remove("palette")
         .map(|value| {
             ThemePalette::try_from(value).unwrap_or_else(|err| {
-                // warn!("{}", err);
+                tracing::warn!("{}", err);
                 ThemePalette::default()
             })
         })
@@ -73,7 +82,7 @@ fn build_theme_values(mut values: Map<String, Value>) -> (HashMap<String, Style>
     for (name, style_value) in values {
         let mut style = Style::default();
         if let Err(err) = palette.parse_style(&mut style, style_value) {
-            // warn!("{}", err);
+            tracing::warn!("{}", err);
         }
 
         styles.insert(name.clone(), style);

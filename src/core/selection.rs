@@ -56,4 +56,9 @@ impl Selection {
             primary_index: 0,
         }
     }
+
+    #[inline(always)]
+    pub fn iter(&self) -> std::slice::Iter<'_, Range> {
+        self.ranges.iter()
+    }
 }

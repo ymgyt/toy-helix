@@ -1,5 +1,8 @@
 use crate::{
-    core::syntax::{self, HighlightEvent},
+    core::{
+        graphemes::prev_grapheme_boundary,
+        syntax::{self, HighlightEvent},
+    },
     term::compositor::{Component, Context},
     view::{
         document::{Document, Mode},
@@ -58,7 +61,7 @@ impl EditorView {
             doc,
             view.offset,
             &text_annotations,
-            // highlights,
+            highlights,
             theme,
             // &mut line_decorations,
             // &mut translated_positions,
@@ -105,7 +108,25 @@ impl EditorView {
         theme: &Theme,
         cursor_shape_config: &CursorShapeConfig,
     ) -> Vec<(usize, std::ops::Range<usize>)> {
-        todo!()
+        let text = doc.text().slice(..);
+        let selection = doc.selection(view.id);
+        let cursor_scope = theme
+            .find_scope_index_exact("ui.cursor")
+            .expect("could not find `ui.cursor` scope in theme");
+        let mut spans: Vec<(usize, std::ops::Range<usize>)> = Vec::new();
+        for (_i, range) in selection.iter().enumerate() {
+            // TODO: handle Reverse case(range.head < range.anchor)
+            if range.head > range.anchor {
+                let cursor_start = prev_grapheme_boundary(text, range.head);
+                // let selection_end = cursor_start;
+                // TODO: push selection range
+                spans.push((cursor_scope, cursor_start..range.head))
+            } else {
+                todo!()
+            }
+        }
+
+        spans
     }
 }
 
