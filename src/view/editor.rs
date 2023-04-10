@@ -1,6 +1,7 @@
 use arc_swap::access::{DynAccess, DynGuard};
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, num::NonZeroUsize, path::Path, sync::Arc};
+use std::{collections::BTreeMap, num::NonZeroUsize, path::Path, pin::Pin, sync::Arc};
+use tokio::time::{sleep, Duration, Instant, Sleep};
 
 use crate::view::{
     document::{Document, Mode},
@@ -43,6 +44,9 @@ pub struct Config {
     pub whitespace: WhitespaceConfig,
     /// Shape for cursor in each mode
     pub cursor_shape: CursorShapeConfig,
+    /// Time in milliseconds since last keypress before idle timers trigger.
+    /// used for autocompletion, set to 0 for instant.
+    pub idle_timeout: Duration,
 }
 
 impl Default for Config {
@@ -50,6 +54,7 @@ impl Default for Config {
         Self {
             whitespace: WhitespaceConfig::default(),
             cursor_shape: CursorShapeConfig::default(),
+            idle_timeout: Duration::from_millis(400),
         }
     }
 }
@@ -59,13 +64,20 @@ pub struct Editor {
     pub tree: Tree,
     pub next_document_id: DocumentId,
     pub documents: BTreeMap<DocumentId, Document>,
+
+    pub count: Option<std::num::NonZeroUsize>,
+
     pub config: Arc<dyn DynAccess<Config>>,
     pub exit_code: i32,
     pub theme: Theme,
+
+    pub idle_timer: Pin<Box<Sleep>>,
 }
 
 impl Editor {
     pub fn new(mut area: Rect, config: Arc<dyn DynAccess<Config>>) -> Self {
+        let conf = config.load();
+
         // TODO: load from loader;
         let theme = DEFAULT_THEME.clone();
         let tree = Tree::new(area);
@@ -74,14 +86,21 @@ impl Editor {
             tree,
             next_document_id: DocumentId::default(),
             documents: BTreeMap::new(),
+            count: None,
             config,
             exit_code: 0,
             theme,
+            idle_timer: Box::pin(sleep(conf.idle_timeout)),
         }
     }
 
     pub fn mode(&self) -> Mode {
         self.mode
+    }
+
+    pub fn reset_idle_timer(&mut self) {
+        let config = self.config();
+        self.idle_timer.as_mut().reset(Instant::now() + config.idle_timeout);
     }
 
     pub fn open(&mut self, path: &Path, action: Action) -> anyhow::Result<DocumentId> {

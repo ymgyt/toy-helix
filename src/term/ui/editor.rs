@@ -3,11 +3,17 @@ use crate::{
         graphemes::prev_grapheme_boundary,
         syntax::{self, HighlightEvent},
     },
-    term::compositor::{Component, Context},
+    current,
+    term::{
+        commands,
+        compositor::{self, Component, Context, EventResult},
+    },
     view::{
         document::{Document, Mode},
         editor::{CursorShapeConfig, Editor},
         graphics::Rect,
+        input::{Event, KeyEvent},
+        keyboard::{KeyCode, KeyModifiers},
         theme::Theme,
         view::View,
     },
@@ -23,9 +29,7 @@ impl EditorView {
     pub fn new() -> Self {
         Self {}
     }
-}
 
-impl EditorView {
     pub fn render_view(
         &self,
         editor: &Editor,
@@ -128,9 +132,51 @@ impl EditorView {
 
         spans
     }
+
+    fn handle_keymap_event(&mut self, mode: Mode, ctx: &mut commands::Context, event: KeyEvent) /*-> Option<KeymapResult> */
+    {
+        todo!()
+    }
+
+    fn command_mode(&mut self, mode: Mode, ctx: &mut commands::Context, event: KeyEvent) {
+        match (event, ctx.editor.count) {
+            // TODO: handle count and '.'
+            _ => {
+                // TODO: handle ctx count and register
+
+                self.handle_keymap_event(mode, ctx, event);
+                // TODO: handle pending
+            }
+        }
+    }
 }
 
 impl Component for EditorView {
+    fn handle_event(&mut self, event: &Event, context: &mut compositor::Context) -> EventResult {
+        let mut cx = commands::Context { editor: context.editor };
+
+        match event {
+            Event::Key(mut key) => {
+                cx.editor.reset_idle_timer();
+                canonicalize_key(&mut key);
+
+                // TODO: clear editor status msg
+
+                let mode = cx.editor.mode();
+                let (view, _) = current!(cx.editor);
+                let focus = view.id;
+
+                // TODO: handle on_next_key
+                match mode {
+                    Mode::Insert => unimplemented!("insert mode"),
+                    mode => self.command_mode(mode, &mut cx, key),
+                }
+            }
+            event => todo!("{event:?}"),
+        }
+
+        todo!()
+    }
     fn render(&mut self, area: Rect, surface: &mut Surface, cx: &mut Context) {
         surface.set_style(area, cx.editor.theme.get("ui.background"));
 
@@ -146,5 +192,15 @@ impl Component for EditorView {
         }
 
         // TODO
+    }
+}
+
+fn canonicalize_key(key: &mut KeyEvent) {
+    if let KeyEvent {
+        code: KeyCode::Char(_),
+        modifiers: _,
+    } = key
+    {
+        key.modifiers.remove(KeyModifiers::SHIFT)
     }
 }

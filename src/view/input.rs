@@ -2,6 +2,17 @@ use anyhow::{anyhow, Error};
 
 use crate::view::keyboard::{KeyCode, KeyModifiers, ModifierKeyCode};
 
+#[derive(Debug, PartialOrd, PartialEq, Eq, Clone, Hash)]
+pub enum Event {
+    FocusGained,
+    FocusLost,
+    Key(KeyEvent),
+    // Mouse(MouseEvent),
+    Paste(String),
+    Resize(u16, u16),
+    IdleTimeout,
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub struct KeyEvent {
     pub code: KeyCode,
@@ -137,5 +148,40 @@ impl std::str::FromStr for KeyEvent {
         }
 
         Ok(KeyEvent { code, modifiers })
+    }
+}
+
+impl From<crossterm::event::Event> for Event {
+    fn from(event: crossterm::event::Event) -> Self {
+        match event {
+            crossterm::event::Event::Key(key) => Self::Key(key.into()),
+            crossterm::event::Event::Mouse(mouse) => {
+                todo!()
+                // Self::Mouse(mouse.into()),
+            }
+            crossterm::event::Event::Resize(w, h) => Self::Resize(w, h),
+            crossterm::event::Event::FocusGained => Self::FocusGained,
+            crossterm::event::Event::FocusLost => Self::FocusLost,
+            crossterm::event::Event::Paste(s) => Self::Paste(s),
+        }
+    }
+}
+
+impl From<crossterm::event::KeyEvent> for KeyEvent {
+    fn from(crossterm::event::KeyEvent { code, modifiers, .. }: crossterm::event::KeyEvent) -> Self {
+        if code == crossterm::event::KeyCode::BackTab {
+            // special case for BackTab -> Shift-Tab
+            let mut modifiers: KeyModifiers = modifiers.into();
+            modifiers.insert(KeyModifiers::SHIFT);
+            Self {
+                code: KeyCode::Tab,
+                modifiers,
+            }
+        } else {
+            Self {
+                code: code.into(),
+                modifiers: modifiers.into(),
+            }
+        }
     }
 }

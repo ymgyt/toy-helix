@@ -1,10 +1,11 @@
 use std::fmt;
 
-pub struct Context /*<'a>*/ {
+use crate::view::editor::Editor;
+
+pub struct Context<'a> {
     // pub register: Option<char>,
     // pub count: Option<NonZeroUsize>,
-    // pub editor: &'a mut Editor,
-
+    pub editor: &'a mut Editor,
     // pub callback: Option<crate::compositor::Callback>,
     // pub on_next_key_callback: Option<Box<dyn FnOnce(&mut Context, KeyEvent)>>,
     // pub jobs: &'a mut Jobs,

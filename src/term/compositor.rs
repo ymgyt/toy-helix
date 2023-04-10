@@ -4,11 +4,23 @@ use crate::view::editor::Editor;
 
 use crate::tui::buffer::Buffer as Surface;
 use crate::view::graphics::Rect;
+use crate::view::input::Event;
+
+pub type Callback = Box<dyn FnOnce(&mut Compositor, &mut Context)>;
+
+// Cursive-inspired
+pub enum EventResult {
+    Ignored(Option<Callback>),
+    Consumed(Option<Callback>),
+}
 
 pub struct Context<'a> {
     pub editor: &'a mut Editor,
 }
 pub trait Component: Any {
+    fn handle_event(&mut self, _event: &Event, _ctx: &mut Context) -> EventResult {
+        EventResult::Ignored(None)
+    }
     /// Render the component onto the provided surface.
     fn render(&mut self, area: Rect, frame: &mut Surface, ctx: &mut Context);
 
@@ -33,6 +45,37 @@ impl Compositor {
             layers: Vec::new(),
             area,
         }
+    }
+
+    pub fn handle_event(&mut self, event: &Event, cx: &mut Context) -> bool {
+        // TODO: handle macro
+
+        let mut callbacks = Vec::new();
+        let mut consumed = false;
+
+        for layer in self.layers.iter_mut().rev() {
+            match layer.handle_event(event, cx) {
+                EventResult::Consumed(Some(callback)) => {
+                    callbacks.push(callback);
+                    consumed = true;
+                    break;
+                }
+                EventResult::Consumed(None) => {
+                    consumed = true;
+                    break;
+                }
+                EventResult::Ignored(Some(callback)) => {
+                    callbacks.push(callback);
+                }
+                EventResult::Ignored(None) => {}
+            };
+        }
+
+        for callback in callbacks {
+            callback(self, cx)
+        }
+
+        consumed
     }
 
     pub fn render(&mut self, area: Rect, surface: &mut Surface, cx: &mut Context) {

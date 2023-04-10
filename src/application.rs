@@ -2,7 +2,7 @@ use arc_swap::{access::Map, ArcSwap};
 use std::{io::stdout, sync::Arc};
 
 use anyhow::{Context, Error, Result};
-use crossterm::{execute, terminal};
+use crossterm::{event::Event as CrosstermEvent, execute, terminal};
 use futures_util::Stream;
 use signal_hook::consts::signal;
 use signal_hook_tokio::Signals;
@@ -154,7 +154,7 @@ impl Application {
                 biased;
 
                 Some(event) = input_stream.next() => {
-                    panic!("handle event");
+                    self.handle_terminal_events(event).await;
                 }
             }
         }
@@ -174,5 +174,27 @@ impl Application {
         // TODO: handle cursor
 
         self.terminal.draw(None, CursorKind::Block).unwrap();
+    }
+
+    pub async fn handle_terminal_events(&mut self, event: Result<CrosstermEvent, crossterm::ErrorKind>) {
+        let mut cx = compositor::Context {
+            editor: &mut self.editor,
+        };
+
+        let should_redraw = match event.unwrap() {
+            CrosstermEvent::Resize(_, _) => {
+                todo!("handle resize event");
+            }
+            CrosstermEvent::Key(crossterm::event::KeyEvent {
+                kind: crossterm::event::KeyEventKind::Release,
+                ..
+            }) => false,
+            event => self.compositor.handle_event(&event.into(), &mut cx),
+        };
+
+        // TODO: care should clouse
+        if should_redraw {
+            self.render().await;
+        }
     }
 }
