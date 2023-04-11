@@ -5,6 +5,7 @@ pub mod doc_formatter;
 pub mod graphemes;
 pub mod line_ending;
 pub mod macros;
+pub mod movement;
 pub mod path;
 pub mod position;
 pub mod selection;

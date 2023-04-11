@@ -1,6 +1,16 @@
 use std::fmt;
 
-use crate::view::editor::Editor;
+use ropey::RopeSlice;
+
+use crate::{
+    core::{
+        doc_formatter::TextFormat,
+        movement::{Direction, Movement},
+        text_annotations::TextAnnotations,
+        Range,
+    },
+    view::editor::Editor,
+};
 
 pub struct Context<'a> {
     // pub register: Option<char>,
@@ -55,6 +65,7 @@ impl MappableCommand {
     #[rustfmt::skip]
     static_commands!(
         no_op, "Do nothing",
+        move_char_right, "Move right",
     );
 }
 
@@ -85,3 +96,13 @@ impl PartialEq for MappableCommand {
 }
 
 fn no_op(_cx: &mut Context) {}
+
+type MoveFn = fn(RopeSlice, Range, Direction, usize, Movement, &TextFormat, &mut TextAnnotations) -> Range;
+
+fn move_impl(cx: &mut Context, move_fn: MoveFn, dir: Direction, behaiviour: Movement) {
+    todo!()
+}
+
+fn move_char_right(cx: &mut Context) {
+    todo!()
+}

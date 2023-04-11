@@ -7,6 +7,7 @@ use crate::{
     term::{
         commands,
         compositor::{self, Component, Context, EventResult},
+        keymap::{KeymapResult, Keymaps},
     },
     view::{
         document::{Document, Mode},
@@ -23,11 +24,13 @@ use crate::tui::buffer::Buffer as Surface;
 
 use super::document::render_document;
 
-pub struct EditorView {}
+pub struct EditorView {
+    pub keymaps: Keymaps,
+}
 
 impl EditorView {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(keymaps: Keymaps) -> Self {
+        Self { keymaps }
     }
 
     pub fn render_view(
@@ -133,8 +136,9 @@ impl EditorView {
         spans
     }
 
-    fn handle_keymap_event(&mut self, mode: Mode, ctx: &mut commands::Context, event: KeyEvent) /*-> Option<KeymapResult> */
-    {
+    fn handle_keymap_event(&mut self, mode: Mode, ctx: &mut commands::Context, event: KeyEvent) -> Option<KeymapResult> {
+        // TODO: handle pending
+        // let key_result = self.keymaps.get(mode, event);
         todo!()
     }
 

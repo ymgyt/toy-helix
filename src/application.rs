@@ -12,6 +12,7 @@ use crate::{
     term::{
         args::Args,
         compositor::{self, Compositor},
+        keymap::Keymaps,
         ui::editor::EditorView,
     },
     tui::backend::crossterm::CrosstermBackend,
@@ -53,7 +54,8 @@ impl Application {
             Arc::new(Map::new(Arc::clone(&config), |config: &Config| &config.editor)),
         );
 
-        let mut editor_view = Box::new(EditorView::new());
+        let keys = Box::new(Map::new(Arc::clone(&config), |config: &Config| &config.keys));
+        let mut editor_view = Box::new(EditorView::new(Keymaps::new(keys)));
         compositor.push(editor_view);
 
         if !args.files.is_empty() {
