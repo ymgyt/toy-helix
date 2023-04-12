@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use arc_swap::access::DynGuard;
+
 use crate::{
     core::{
         graphemes::prev_grapheme_boundary,
@@ -138,8 +142,22 @@ impl EditorView {
 
     fn handle_keymap_event(&mut self, mode: Mode, ctx: &mut commands::Context, event: KeyEvent) -> Option<KeymapResult> {
         // TODO: handle pending
-        // let key_result = self.keymaps.get(mode, event);
-        todo!()
+        let key_result = self.keymaps.get(mode, event);
+
+        let mut execute_command = |command: &commands::MappableCommand| {
+            command.execute(ctx);
+            // TODO: handle normal to insert or vise versa
+        };
+
+        match &key_result {
+            KeymapResult::Matched(command) => {
+                execute_command(command);
+            }
+            KeymapResult::Pending(_) => todo!(),
+            KeymapResult::MatchedSequence(_) => todo!(),
+            KeymapResult::NotFound | KeymapResult::Cancelled(_) => return Some(key_result),
+        }
+        None
     }
 
     fn command_mode(&mut self, mode: Mode, ctx: &mut commands::Context, event: KeyEvent) {

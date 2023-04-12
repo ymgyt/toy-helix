@@ -56,6 +56,12 @@ macro_rules! static_commands {
 }
 
 impl MappableCommand {
+    pub fn execute(&self, cx: &mut Context) {
+        match &self {
+            Self::Typable { .. } => todo!(),
+            Self::Static { fun, .. } => (fun)(cx),
+        }
+    }
     pub fn name(&self) -> &str {
         match &self {
             Self::Typable { name, .. } => name,

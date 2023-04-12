@@ -2,11 +2,12 @@ pub mod default;
 pub mod macros;
 
 use std::{
+    borrow::Cow,
     collections::HashMap,
     ops::{Deref, DerefMut},
 };
 
-use arc_swap::access::DynAccess;
+use arc_swap::access::{DynAccess, DynGuard};
 
 use crate::{
     term::commands::MappableCommand,
@@ -70,6 +71,19 @@ pub enum KeyTrie {
     Node(KeyTrieNode),
 }
 
+impl KeyTrie {
+    pub fn search(&self, keys: &[KeyEvent]) -> Option<&KeyTrie> {
+        let mut trie = self;
+        for key in keys {
+            trie = match trie {
+                KeyTrie::Node(map) => map.get(key),
+                KeyTrie::Leaf(_) => None,
+            }?
+        }
+        Some(trie)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum KeymapResult {
     /// Needs more keys to execute a command. Contains valid keys for next keystroke.
@@ -109,5 +123,27 @@ impl Keymaps {
             state: Vec::new(),
             sticky: None,
         }
+    }
+    /// Lookup `key` in the keymap to try and find a command to execute.
+    pub fn get(&mut self, mode: Mode, key: KeyEvent) -> KeymapResult {
+        let keymaps = &*self.map();
+        let keymap = &keymaps[&mode];
+
+        // TODO: care state
+        let first = &key;
+        // TODO: handle sticky
+        let trie_node = Cow::Borrowed(&keymap.root);
+
+        let trie = match trie_node.search(&[*first]) {
+            Some(KeyTrie::Leaf(ref cmd)) => {
+                return KeymapResult::Matched(cmd.clone());
+            }
+            None => return KeymapResult::NotFound,
+            Some(t) => todo!(),
+        };
+    }
+
+    pub fn map(&self) -> DynGuard<HashMap<Mode, Keymap>> {
+        self.map.load()
     }
 }
