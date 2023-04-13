@@ -55,6 +55,19 @@ impl<I: Iterator<Item = HighlightEvent>> Iterator for Merge<I> {
         // TODO: handle range if offscreen case
 
         match (self.next_event, &self.next_span) {
+            (Some(Source { start, end }), Some((_, range))) if start < range.start => {
+                let intersect = range.start.min(end);
+
+                let event = Source { start, end: intersect };
+
+                if end == intersect {
+                    self.next_event = self.iter.next();
+                } else {
+                    self.next_event = Some(Source { start: intersect, end });
+                };
+
+                Some(event)
+            }
             (Some(Source { start, end }), Some((span, range))) if start == range.start => {
                 let intersect = range.end.min(end);
                 let event = HighlightStart(Highlight(*span));

@@ -127,6 +127,7 @@ impl EditorView {
         let mut spans: Vec<(usize, std::ops::Range<usize>)> = Vec::new();
         for (_i, range) in selection.iter().enumerate() {
             // TODO: handle Reverse case(range.head < range.anchor)
+            // TODO: handle min_width_1
             if range.head > range.anchor {
                 let cursor_start = prev_grapheme_boundary(text, range.head);
                 // let selection_end = cursor_start;
@@ -175,8 +176,14 @@ impl EditorView {
 
 impl Component for EditorView {
     fn handle_event(&mut self, event: &Event, context: &mut compositor::Context) -> EventResult {
-        let mut cx = commands::Context { editor: context.editor };
+        let mut cx = commands::Context {
+            editor: context.editor,
+            count: None,
+        };
 
+        tracing::debug!(?event, "Handle event");
+        let (view, doc) = current!(cx.editor);
+        tracing::debug!("{:#?}", doc.selection(view.id));
         match event {
             Event::Key(mut key) => {
                 cx.editor.reset_idle_timer();
@@ -193,12 +200,16 @@ impl Component for EditorView {
                     Mode::Insert => unimplemented!("insert mode"),
                     mode => self.command_mode(mode, &mut cx, key),
                 }
+
+                tracing::debug!(?event, "Handle event");
+                let (view, doc) = current!(cx.editor);
+                // TODO: handle view.ensure_cursor_in_view
+                EventResult::Consumed(None)
             }
             event => todo!("{event:?}"),
         }
-
-        todo!()
     }
+
     fn render(&mut self, area: Rect, surface: &mut Surface, cx: &mut Context) {
         surface.set_style(area, cx.editor.theme.get("ui.background"));
 

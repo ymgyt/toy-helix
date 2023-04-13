@@ -1,24 +1,32 @@
-use std::fmt;
+use std::{fmt, num::NonZeroUsize};
 
 use ropey::RopeSlice;
 
 use crate::{
     core::{
         doc_formatter::TextFormat,
-        movement::{Direction, Movement},
+        movement::{move_horizontally, Direction, Movement},
         text_annotations::TextAnnotations,
         Range,
     },
+    current,
     view::editor::Editor,
 };
 
 pub struct Context<'a> {
     // pub register: Option<char>,
-    // pub count: Option<NonZeroUsize>,
+    pub count: Option<NonZeroUsize>,
     pub editor: &'a mut Editor,
     // pub callback: Option<crate::compositor::Callback>,
     // pub on_next_key_callback: Option<Box<dyn FnOnce(&mut Context, KeyEvent)>>,
     // pub jobs: &'a mut Jobs,
+}
+
+impl<'a> Context<'a> {
+    /// Returns 1 if no explicit count was provided
+    pub fn count(&self) -> usize {
+        self.count.map_or(1, |v| v.get())
+    }
 }
 
 /// A MappbleCommand is either a static command like "jump_view_up" or a Typable command like
@@ -105,10 +113,22 @@ fn no_op(_cx: &mut Context) {}
 
 type MoveFn = fn(RopeSlice, Range, Direction, usize, Movement, &TextFormat, &mut TextAnnotations) -> Range;
 
-fn move_impl(cx: &mut Context, move_fn: MoveFn, dir: Direction, behaiviour: Movement) {
-    todo!()
+fn move_impl(cx: &mut Context, move_fn: MoveFn, dir: Direction, behaviour: Movement) {
+    // NOTE: count == 1 is very important. This value is used for neth_next_boundary, so if it is 0, the head will not move and will be buggy.
+    let count = cx.count();
+    let (view, doc) = current!(cx.editor);
+    let text = doc.text().slice(..);
+    let text_fmt = doc.text_format(view.inner_area(doc).width, None);
+    let mut annotations = view.text_annotations(doc, None);
+
+    let selection = doc
+        .selection(view.id)
+        .clone()
+        .transform(|range| move_fn(text, range, dir, count, behaviour, &text_fmt, &mut annotations));
+
+    doc.set_selection(view.id, selection);
 }
 
 fn move_char_right(cx: &mut Context) {
-    todo!()
+    move_impl(cx, move_horizontally, Direction::Forward, Movement::Move);
 }
