@@ -29,7 +29,7 @@ where
     /// of each draw pass to output the necessary updates to the terminal
     buffers: [Buffer; 2],
     /// Index of the current buffer in the previous array
-    current: usize,
+    pub current: usize,
 }
 
 impl<B> Terminal<B>

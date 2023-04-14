@@ -1,6 +1,7 @@
 use std::io::{self, Write};
 
 use crossterm::{
+    cursor::MoveTo,
     queue,
     style::{
         Attribute as CAttribute, Color as CColor, Print, SetAttribute, SetBackgroundColor, SetForegroundColor, SetUnderlineColor,
@@ -50,10 +51,10 @@ where
         let mut last_pos: Option<(u16, u16)> = None;
         for (x, y, cell) in content {
             // Move the cursor if the previous location was not (x - 1, y)
-            // if !matches!(last_pos, Some(p) if x == p.0 + 1 && y == p.1) {
-            //     map_error(queue!(self.buffer, MoveTo(x, y)))?;
-            // }
-            // last_pos = Some((x, y));
+            if !matches!(last_pos, Some(p) if x == p.0 + 1 && y == p.1) {
+                map_error(queue!(self.buffer, MoveTo(x, y)))?;
+            }
+            last_pos = Some((x, y));
             if cell.modifier != modifier {
                 let diff = ModifierDiff {
                     from: modifier,

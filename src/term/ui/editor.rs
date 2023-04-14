@@ -181,9 +181,6 @@ impl Component for EditorView {
             count: None,
         };
 
-        tracing::debug!(?event, "Handle event");
-        let (view, doc) = current!(cx.editor);
-        tracing::debug!("{:#?}", doc.selection(view.id));
         match event {
             Event::Key(mut key) => {
                 cx.editor.reset_idle_timer();
@@ -201,8 +198,6 @@ impl Component for EditorView {
                     mode => self.command_mode(mode, &mut cx, key),
                 }
 
-                tracing::debug!(?event, "Handle event");
-                let (view, doc) = current!(cx.editor);
                 // TODO: handle view.ensure_cursor_in_view
                 EventResult::Consumed(None)
             }
