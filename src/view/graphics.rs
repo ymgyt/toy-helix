@@ -160,6 +160,7 @@ impl FromStr for UnderlineStyle {
 bitflags! {
     /// Modifier changes the way a piece of text is displayed.
     /// They are bitflags so they can easily be composed.
+    #[derive(PartialEq, Eq, Debug, Clone, Copy)]
     pub struct Modifier: u16 {
         const BOLD              = 0b0000_0000_0001;
         const DIM               = 0b0000_0000_0010;

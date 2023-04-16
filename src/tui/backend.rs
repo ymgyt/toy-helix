@@ -11,5 +11,6 @@ pub trait Backend {
     fn draw<'a, I>(&mut self, content: I) -> Result<(), io::Error>
     where
         I: Iterator<Item = (u16, u16, &'a Cell)>;
+    fn hide_cursor(&mut self) -> Result<(), io::Error>;
     fn flush(&mut self) -> Result<(), io::Error>;
 }

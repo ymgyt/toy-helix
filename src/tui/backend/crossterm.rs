@@ -1,8 +1,8 @@
 use std::io::{self, Write};
 
 use crossterm::{
-    cursor::MoveTo,
-    queue,
+    cursor::{Hide, MoveTo},
+    execute, queue,
     style::{
         Attribute as CAttribute, Color as CColor, Print, SetAttribute, SetBackgroundColor, SetForegroundColor, SetUnderlineColor,
     },
@@ -110,6 +110,10 @@ where
 
     fn flush(&mut self) -> Result<(), io::Error> {
         self.buffer.flush()
+    }
+
+    fn hide_cursor(&mut self) -> Result<(), io::Error> {
+        map_error(execute!(self.buffer, Hide))
     }
 }
 

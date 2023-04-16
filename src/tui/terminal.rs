@@ -82,11 +82,16 @@ where
         self.flush()?;
 
         // TODO: handle cursor
+        self.hide_cursor()?;
 
         self.buffers[1 - self.current].reset();
         self.current = 1 - self.current;
 
         self.backend.flush()?;
         Ok(())
+    }
+
+    pub fn hide_cursor(&mut self) -> io::Result<()> {
+        self.backend.hide_cursor()
     }
 }

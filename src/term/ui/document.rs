@@ -81,7 +81,7 @@ pub fn render_document(
     // line_decorations: &mut [Box<dyn LineDecoration +'_>],
     // translated_positions: &mut [TranslatedPosition],
 ) {
-    tracing::info!("render_document");
+    tracing::info!("===========Render_document=============");
     tracing::info!("viewport={viewport:?}");
     tracing::info!("offset={offset:?}");
     let mut renderer = TextRenderer::new(surface, doc, theme, offset.horizontal_offset, viewport);
