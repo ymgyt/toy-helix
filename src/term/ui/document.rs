@@ -32,6 +32,7 @@ impl<H: Iterator<Item = HighlightEvent>> Iterator for StyleIter<'_, H> {
     type Item = (Style, usize);
     fn next(&mut self) -> Option<(Style, usize)> {
         while let Some(event) = self.highlight_iter.next() {
+            tracing::info!("{event:?}");
             match event {
                 HighlightEvent::HighlightStart(highlights) => self.active_highlights.push(highlights),
                 HighlightEvent::HighlightEnd => {
@@ -82,8 +83,7 @@ pub fn render_document(
     // translated_positions: &mut [TranslatedPosition],
 ) {
     tracing::info!("===========Render_document=============");
-    tracing::info!("viewport={viewport:?}");
-    tracing::info!("offset={offset:?}");
+    tracing::info!("viewport={viewport:?} offse={offset:?}");
     let mut renderer = TextRenderer::new(surface, doc, theme, offset.horizontal_offset, viewport);
     render_text(
         &mut renderer,

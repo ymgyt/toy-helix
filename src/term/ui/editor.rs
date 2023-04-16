@@ -121,11 +121,23 @@ impl EditorView {
     ) -> Vec<(usize, std::ops::Range<usize>)> {
         let text = doc.text().slice(..);
         let selection = doc.selection(view.id);
+        tracing::info!("selection={selection:?}");
+        let primary_idx = 0;
+        let cursor_is_block = true;
         let cursor_scope = theme
             .find_scope_index_exact("ui.cursor")
             .expect("could not find `ui.cursor` scope in theme");
         let mut spans: Vec<(usize, std::ops::Range<usize>)> = Vec::new();
-        for (_i, range) in selection.iter().enumerate() {
+        for (i, range) in selection.iter().enumerate() {
+            let selection_is_primary = i == primary_idx;
+
+            // Special-case: cursor at end of the rope.
+            if range.head == range.anchor && range.head == text.len_chars() {
+                if !selection_is_primary || cursor_is_block {
+                    spans.push((cursor_scope, range.head..range.head + 1));
+                }
+                continue;
+            }
             // TODO: handle Reverse case(range.head < range.anchor)
             // TODO: handle min_width_1
             if range.head > range.anchor {

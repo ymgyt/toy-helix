@@ -1,3 +1,7 @@
+pub mod typed;
+
+pub use typed::*;
+
 use std::{fmt, num::NonZeroUsize};
 
 use ropey::RopeSlice;
@@ -80,6 +84,8 @@ impl MappableCommand {
     static_commands!(
         no_op, "Do nothing",
         move_char_right, "Move right",
+        move_char_left, "Move left",
+        _quit, "Quit",
     );
 }
 
@@ -129,6 +135,15 @@ fn move_impl(cx: &mut Context, move_fn: MoveFn, dir: Direction, behaviour: Movem
     doc.set_selection(view.id, selection);
 }
 
+fn move_char_left(cx: &mut Context) {
+    move_impl(cx, move_horizontally, Direction::Backward, Movement::Move)
+}
+
 fn move_char_right(cx: &mut Context) {
-    move_impl(cx, move_horizontally, Direction::Forward, Movement::Move);
+    move_impl(cx, move_horizontally, Direction::Forward, Movement::Move)
+}
+
+// for debug use.
+fn _quit(cx: &mut Context) {
+    panic!("Bye")
 }

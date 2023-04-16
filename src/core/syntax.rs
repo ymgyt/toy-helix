@@ -95,6 +95,21 @@ impl<I: Iterator<Item = HighlightEvent>> Iterator for Merge<I> {
                 self.next_event = self.iter.next();
                 Some(event)
             }
+            // Can happen if cursor at EOF and/or diagnostic reaches past the end.
+            // We need to actually emit events for the cursor-at-EOF situation,
+            // even though the range is past the end of the text.  This needs to be
+            // handled appropriately by the drawing code by not assuming that
+            // all `Source` events point to valid indices in the rope.
+            (None, Some((span, range))) => {
+                let event = HighlightStart(Highlight(*span));
+                self.queue.push(HighlightEnd);
+                self.queue.push(Source {
+                    start: range.start,
+                    end: range.end,
+                });
+                self.next_span = self.spans.next();
+                Some(event)
+            }
             (None, None) => None,
             e => todo!("Merge::next() {e:?}"),
         }
