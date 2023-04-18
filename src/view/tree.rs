@@ -144,6 +144,10 @@ impl Tree {
         }
     }
 
+    pub fn contains(&self, index: ViewId) -> bool {
+        self.nodes.contains_key(index)
+    }
+
     pub fn split(&mut self, view: View, layout: Layout) -> ViewId {
         let focus = self.focus;
         let parent = self.nodes[focus].parent;

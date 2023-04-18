@@ -55,4 +55,26 @@ impl View {
         doc.text_annotations(theme)
         // TODO
     }
+
+    pub fn offset_coords_to_in_view_center<const CENTRING: bool>(
+        &self,
+        doc: &Document,
+        scrolloff: usize,
+    ) -> Option<ViewPosition> {
+        let text_fmt = doc.text_format(viewport.width, None);
+        let mut offset = self.offset;
+        let off = visual_offset_from_anchor()
+        if text_fmt.soft_wrap {
+            offset.horizontal_offset = 0;
+        } else {
+        }
+
+        Some(offset)
+    }
+
+    pub fn ensure_cursor_in_view(&mut self, doc: &Document, scrolloff: usize) {
+        if let Some(offset) = self.offset_coords_to_in_view_center::<false>(doc, scrolloff) {
+            self.offset = offset;
+        }
+    }
 }

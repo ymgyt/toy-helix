@@ -7,7 +7,7 @@ use crate::{
         graphemes::prev_grapheme_boundary,
         syntax::{self, HighlightEvent},
     },
-    current,
+    current, doc_mut,
     term::{
         commands,
         compositor::{self, Component, Context, EventResult},
@@ -22,6 +22,7 @@ use crate::{
         theme::Theme,
         view::View,
     },
+    view_mut,
 };
 
 use crate::tui::buffer::Buffer as Surface;
@@ -210,7 +211,14 @@ impl Component for EditorView {
                     mode => self.command_mode(mode, &mut cx, key),
                 }
 
-                // TODO: handle view.ensure_cursor_in_view
+                // if the focused view still exists and wasn't closed
+                if cx.editor.tree.contains(focus) {
+                    let view = view_mut!(cx.editor, focus);
+                    let doc = doc_mut!(cx.editor, &view.doc);
+
+                    view.ensure_cursor_in_view(doc, config.scrolloff);
+                }
+
                 EventResult::Consumed(None)
             }
             event => todo!("{event:?}"),

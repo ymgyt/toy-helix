@@ -14,7 +14,7 @@ macro_rules! doc_mut {
         $editor.documents.get_mut($id).unwrap()
     }};
     ($editor:expr) => {{
-        notimplemented!()
+        $crate::current!($editor).1
     }};
 }
 

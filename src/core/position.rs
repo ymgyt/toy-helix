@@ -51,3 +51,15 @@ pub fn visual_offset_from_block(
 
     (last_pos, block_start)
 }
+
+/// Returns the visual offset from the start of the visual line
+/// that contains anchor.
+pub fn visual_offset_from_anchor(
+    text: RopeSlice,
+    anchor: usize,
+    text_fmt: &TextFormat,
+    annotations: &TextAnnotations,
+    max_rows: usize,
+) -> Result<(Position, usize), VisualOffsetError> {
+    todo!()
+}
