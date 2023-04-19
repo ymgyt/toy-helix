@@ -91,6 +91,12 @@ pub struct Selection {
 }
 
 impl Selection {
+    #[inline]
+    #[must_use]
+    pub fn primary(&self) -> Range {
+        self.ranges[self.primary_index]
+    }
+
     /// Ensures the selection adheres to the following invariants:
     /// 1. All ranges are grapheme aligned.
     /// 2. All ranges are at least 1charater wide, unless at the very end of the document.

@@ -36,6 +36,12 @@ impl<'a> FormattedGrapheme<'a> {
             source,
         }
     }
+
+    /// Returns whether this grapheme is virtual inline text
+    pub fn is_virtual(&self) -> bool {
+        matches!(self.source, GraphemeSource::VirtualText { .. })
+    }
+
     pub fn doc_chars(&self) -> usize {
         match self.source {
             GraphemeSource::Document { codepoints } => codepoints as usize,

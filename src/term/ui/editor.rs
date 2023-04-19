@@ -213,6 +213,7 @@ impl Component for EditorView {
 
                 // if the focused view still exists and wasn't closed
                 if cx.editor.tree.contains(focus) {
+                    let config = cx.editor.config();
                     let view = view_mut!(cx.editor, focus);
                     let doc = doc_mut!(cx.editor, &view.doc);
 

@@ -40,6 +40,8 @@ impl Default for CursorShapeConfig {
 #[derive(Debug, Clone, PartialEq, Eq)]
 // #[serde(rename_all = "kebab-case", default, deny_unknown_fields)]
 pub struct Config {
+    /// Padding to keep between the edge of the screen and the cursor when scrolling. Defaults to 5.
+    pub scrolloff: usize,
     // #[serde(default)]
     pub whitespace: WhitespaceConfig,
     /// Shape for cursor in each mode
@@ -52,6 +54,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            scrolloff: 5,
             whitespace: WhitespaceConfig::default(),
             cursor_shape: CursorShapeConfig::default(),
             idle_timeout: Duration::from_millis(400),

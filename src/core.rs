@@ -26,4 +26,6 @@ pub use line_ending::LineEnding;
 
 pub use selection::{Range, Selection};
 
+pub use position::VisualOffsetError;
+
 pub type Tendril = SmartString<smartstring::LazyCompact>;
