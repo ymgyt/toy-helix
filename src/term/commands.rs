@@ -9,7 +9,7 @@ use ropey::RopeSlice;
 use crate::{
     core::{
         doc_formatter::TextFormat,
-        movement::{move_horizontally, Direction, Movement},
+        movement::{move_horizontally, move_vertically_visual, Direction, Movement},
         text_annotations::TextAnnotations,
         Range,
     },
@@ -85,6 +85,8 @@ impl MappableCommand {
         no_op, "Do nothing",
         move_char_right, "Move right",
         move_char_left, "Move left",
+        move_visual_line_down, "Move down",
+        move_visual_line_up, "Move up",
         _quit, "Quit",
     );
 }
@@ -141,6 +143,14 @@ fn move_char_left(cx: &mut Context) {
 
 fn move_char_right(cx: &mut Context) {
     move_impl(cx, move_horizontally, Direction::Forward, Movement::Move)
+}
+
+fn move_visual_line_up(cx: &mut Context) {
+    move_impl(cx, move_vertically_visual, Direction::Backward, Movement::Move)
+}
+
+fn move_visual_line_down(cx: &mut Context) {
+    move_impl(cx, move_vertically_visual, Direction::Forward, Movement::Move)
 }
 
 // for debug use.
