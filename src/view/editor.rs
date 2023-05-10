@@ -49,6 +49,7 @@ pub struct Config {
     /// Time in milliseconds since last keypress before idle timers trigger.
     /// used for autocompletion, set to 0 for instant.
     pub idle_timeout: Duration,
+    pub lsp: LspConfig,
 }
 
 impl Default for Config {
@@ -58,6 +59,28 @@ impl Default for Config {
             whitespace: WhitespaceConfig::default(),
             cursor_shape: CursorShapeConfig::default(),
             idle_timeout: Duration::from_millis(400),
+            lsp: LspConfig::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LspConfig {
+    pub enable: bool,
+    pub display_message: bool,
+    pub auto_signature_help: bool,
+    pub display_signature_help_docs: bool,
+    pub display_inlay_hints: bool,
+}
+
+impl Default for LspConfig {
+    fn default() -> Self {
+        Self {
+            enable: true,
+            display_message: true,
+            auto_signature_help: true,
+            display_signature_help_docs: true,
+            display_inlay_hints: true,
         }
     }
 }
@@ -203,6 +226,20 @@ impl Editor {
         }
 
         // self_refresh();
+    }
+
+    fn launch_language_server(&mut self, doc_id: DocumentId) -> Option<()> {
+        if !self.config().lsp.enable {
+            return None;
+        };
+
+        // if doc doesn't have a URL it's a scratch buffer, ignore it
+        let (lang, path) = {
+            let doc = self.document(doc_id)?;
+            (doc.language.clone(), doc.path().cloned())
+        };
+
+        None
     }
 }
 
